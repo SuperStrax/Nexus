@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model match_maps {
+  map_id      Int      @id @default(autoincrement())
+  match_id    Int?
+  map_name    String?  @db.VarChar(100)
+  team1_score Int?
+  team2_score Int?
+  matches     matches? @relation(fields: [match_id], references: [match_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model matches {
+  match_id                            Int                  @id @default(autoincrement())
+  hltv_match_id                       String               @unique @db.VarChar(255)
+  match_date                          DateTime?            @db.Timestamp 
+  status                              String?              @default("finished")
+  stream_url                          String?              @db.Text
+  tournament                          String?              @db.VarChar(255)
+  format                              String?              @db.VarChar(50)
+  team1_id                            Int?
+  team2_id                            Int?
+  winner_team_id                      Int?
+  score_team1                         Int?
+  score_team2                         Int?
+  match_maps                          match_maps[]
+  teams_matches_team1_idToteams       teams?               @relation("matches_team1_idToteams", fields: [team1_id], references: [team_id], onDelete: NoAction, onUpdate: NoAction)
+  teams_matches_team2_idToteams       teams?               @relation("matches_team2_idToteams", fields: [team2_id], references: [team_id], onDelete: NoAction, onUpdate: NoAction)
+  teams_matches_winner_team_idToteams teams?               @relation("matches_winner_team_idToteams", fields: [winner_team_id], references: [team_id], onDelete: NoAction, onUpdate: NoAction)
+  player_match_stats                  player_match_stats[]
+
+  @@index([match_date], map: "idx_matches_date")
+}
+
+model player_match_stats {
+  stat_id   Int      @id @default(autoincrement())
+  match_id  Int?
+  player_id Int?
+  team_id   Int?
+  kills     Int?
+  deaths    Int?
+  adr       Float?   @db.Real
+  kast      Float?   @db.Real
+  rating    Float?   @db.Real
+  is_standin Boolean @default(false)
+  matches   matches? @relation(fields: [match_id], references: [match_id], onDelete: Cascade, onUpdate: NoAction)
+  players   players? @relation(fields: [player_id], references: [player_id], onDelete: NoAction, onUpdate: NoAction)
+  teams     teams?   @relation(fields: [team_id], references: [team_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([player_id], map: "idx_stats_player")
+}
+
+model players {
+  player_id          Int                  @id @default(autoincrement())
+  name               String               @unique @db.VarChar(255)
+  player_match_stats player_match_stats[]
+}
+
+model teams {
+  team_id                               Int                  @id @default(autoincrement())
+  name                                  String               @unique @db.VarChar(255)
+  matches_matches_team1_idToteams       matches[]            @relation("matches_team1_idToteams")
+  matches_matches_team2_idToteams       matches[]            @relation("matches_team2_idToteams")
+  matches_matches_winner_team_idToteams matches[]            @relation("matches_winner_team_idToteams")
+  player_match_stats                    player_match_stats[]
+}
